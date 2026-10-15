@@ -13,7 +13,7 @@ pipeline {
             steps { checkout scm }
         }
         stage('Test') {
-            steps { sh 'mvn clean test -Denv=${ENV} -Dgroups=${GROUPS}' }
+            steps { sh "mvn clean test -Denv=${params.ENV} -Dgroups=${params.GROUPS}" }
         }
     }
     post {
