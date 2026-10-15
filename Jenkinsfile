@@ -1,25 +1,45 @@
 pipeline {
     agent any
+
     tools {
-        maven 'M3'
         jdk 'JDK17'
+        maven 'M3'
     }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timestamps()
+    }
+
     parameters {
-        choice(name: 'GROUPS', choices: ['', 'smoke', 'regression', 'crud', 'auth'], description: 'JUnit tag. Empty = all')
-        choice(name: 'ENV', choices: ['dev', 'stage', 'prod'], description: 'Config file')
+        string(name: 'ENV', defaultValue: 'dev', description: 'dev / stage')
+        string(name: 'GROUPS', defaultValue: '', description: 'Пусто = все 25 тестов, например smoke')
     }
+
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
     stages {
         stage('Checkout') {
-            steps { checkout scm }
+            steps {
+                checkout scm
+            }
         }
         stage('Test') {
-            steps { sh "mvn clean test -Denv=${params.ENV} -Dgroups=${params.GROUPS}" }
+            steps {
+                script {
+                    def groupsArg = params.GROUPS?.trim() ? "-Dgroups=${params.GROUPS}" : ""
+                    sh "mvn clean test -Denv=${params.ENV} ${groupsArg}"
+                }
+            }
         }
     }
+
     post {
         always {
             junit 'target/surefire-reports/*.xml'
-            allure includeProperties: false, results: [[path: 'target/allure-results']]
+            allure results: [[path: 'target/allure-results']]
         }
     }
 }
