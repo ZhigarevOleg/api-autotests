@@ -13,11 +13,12 @@ pipeline {
 
     parameters {
         string(name: 'ENV', defaultValue: 'dev', description: 'dev / stage')
-        string(name: 'GROUPS', defaultValue: '', description: 'Пусто = все 25 тестов, например smoke')
+        string(name: 'GROUPS', defaultValue: '', description: 'Пусто = все тесты')
     }
 
     triggers {
         pollSCM('H/5 * * * *')
+        cron('H 3 * * *')
     }
 
     stages {
@@ -26,6 +27,7 @@ pipeline {
                 checkout scm
             }
         }
+
         stage('Test') {
             steps {
                 script {
@@ -40,6 +42,45 @@ pipeline {
         always {
             junit 'target/surefire-reports/*.xml'
             allure results: [[path: 'target/allure-results']]
+        }
+
+        success {
+            withCredentials([
+                    string(credentialsId: 'telegram_token', variable: 'TG_TOKEN'),
+                    string(credentialsId: 'telegram_chat_id', variable: 'TG_CHAT')
+            ]) {
+                sh '''
+          curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+            --data-urlencode "chat_id=$TG_CHAT" \
+            --data-urlencode "text=SUCCESS: $JOB_NAME #$BUILD_NUMBER (env=$ENV) $BUILD_URL"
+        '''
+            }
+        }
+
+        failure {
+            withCredentials([
+                    string(credentialsId: 'telegram_token', variable: 'TG_TOKEN'),
+                    string(credentialsId: 'telegram_chat_id', variable: 'TG_CHAT')
+            ]) {
+                sh '''
+          curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+            --data-urlencode "chat_id=$TG_CHAT" \
+            --data-urlencode "text=FAILED: $JOB_NAME #$BUILD_NUMBER (env=$ENV, groups=$GROUPS) $BUILD_URL"
+        '''
+            }
+        }
+
+        unstable {
+            withCredentials([
+                    string(credentialsId: 'telegram_token', variable: 'TG_TOKEN'),
+                    string(credentialsId: 'telegram_chat_id', variable: 'TG_CHAT')
+            ]) {
+                sh '''
+          curl -s -X POST "https://api.telegram.org/bot$TG_TOKEN/sendMessage" \
+            --data-urlencode "chat_id=$TG_CHAT" \
+            --data-urlencode "text=UNSTABLE: $JOB_NAME #$BUILD_NUMBER $BUILD_URL"
+        '''
+            }
         }
     }
 }
