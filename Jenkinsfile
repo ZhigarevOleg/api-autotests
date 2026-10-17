@@ -30,12 +30,13 @@ pipeline {
 
         stage('Test') {
             steps {
-                script {
-                    def groupsArg = params.GROUPS?.trim() ? "-Dgroups=${params.GROUPS}" : ""
-                    sh "mvn clean test -Denv=${params.ENV} ${groupsArg}"
+                withCredentials([string(credentialsId: 'db-postgres-pass', variable: 'DB_PASSWORD')]) {
+                    script {
+                        def groupsArg = params.GROUPS?.trim() ? "-Dgroups=${params.GROUPS}" : ""
+                        sh "mvn clean test -Denv=${params.ENV} -Ddb.password=${DB_PASSWORD} ${groupsArg}"
+                    }
                 }
             }
-        }
     }
 
     post {
