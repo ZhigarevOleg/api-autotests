@@ -24,6 +24,10 @@ public final class Config {
     private Config() {}
 
     public static String get(String key) {
+        String override = System.getProperty(key);
+        if (override != null && !override.isBlank()) {
+            return override;
+        }
         return PROPS.getProperty(key);
     }
 }

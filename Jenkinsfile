@@ -35,14 +35,13 @@ pipeline {
                         def groupsArg = params.GROUPS?.trim() ? "-Dgroups=${params.GROUPS}" : ""
                         withEnv(["GROUPS_ARG=${groupsArg}"]) {
                             sh '''
-                        mvn clean test -Denv=$ENV -Ddb.password="$DB_PASSWORD" $GROUPS_ARG
+                        mvn clean test -Denv=$ENV -Ddb.password="$DB_PASSWORD" -Ddb.url="jdbc:postgresql://host.docker.internal:5432/testdb" $GROUPS_ARG
                     '''
                         }
                     }
                 }
             }
         }
-    }
 
     post {
         always {
