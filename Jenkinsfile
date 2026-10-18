@@ -33,7 +33,11 @@ pipeline {
                 withCredentials([string(credentialsId: 'db-postgres-pass', variable: 'DB_PASSWORD')]) {
                     script {
                         def groupsArg = params.GROUPS?.trim() ? "-Dgroups=${params.GROUPS}" : ""
-                        sh "mvn clean test -Denv=${params.ENV} -Ddb.password=${DB_PASSWORD} ${groupsArg}"
+                        withEnv(["GROUPS_ARG=${groupsArg}"]) {
+                            sh '''
+                        mvn clean test -Denv=$ENV -Ddb.password="$DB_PASSWORD" $GROUPS_ARG
+                    '''
+                        }
                     }
                 }
             }
